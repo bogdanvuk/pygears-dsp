@@ -1,11 +1,11 @@
 import wav_utils
 
-from pygears_dsp.lib.echo import echo, stereo_echo
+from pygears_dsp.lib.echo import echo
 from pygears import gear
 from pygears.sim import sim
-from pygears.lib.verif import drv
+from pygears.lib import drv
 from pygears.sim.modules import SimVerilated
-from pygears.typing import Tuple, Int, typeof
+from pygears.typing import Fixp, Tuple, typeof
 
 
 def wav_echo_sim(ifn,
@@ -24,25 +24,38 @@ def wav_echo_sim(ifn,
     samples_all, params = wav_utils.load_wav(ifn, stereo=stereo)
     samples = samples_all[:sample_rng]
 
+    sample_bit_width = 8 * params.sampwidth
+    sample_type = Fixp[1, sample_bit_width]
+
     if stereo:
-        sim_func = stereo_echo_sim
+        stream_type = Tuple[sample_type, sample_type]
+
+        def decode_sample(seq):
+            for s in seq:
+                yield stream_type(
+                    (sample_type.decode(s[0]), sample_type.decode(s[1])))
     else:
-        sim_func = mono_echo_sim
+        stream_type = sample_type
 
-    res = sim_func(
-        samples,
-        cosim=cosim,
-        sample_rate=params.framerate,
-        sample_width=params.sampwidth,
-        feedback_gain=feedback_gain,
-        delay=delay)
+        def decode_sample(seq):
+            for s in seq:
+                yield sample_type.decode(s)
 
-    # print(f'Result length: {len(res)}')
+    result = []
+    drv(t=stream_type, seq=decode_sample(samples)) \
+        | echo(feedback_gain=feedback_gain,
+               sample_rate=params.framerate,
+               delay=delay,
+               sim_cls=SimVerilated if cosim else None) \
+        | collect(result=result, samples_num=len(samples))
 
-    wav_utils.dump_wav(ofn, res, params, stereo=stereo)
+    # sim(outdir='./build', extens=[Profiler])
+    sim(outdir='./build')
+
+    wav_utils.dump_wav(ofn, result, params, stereo=stereo)
 
     try:
-        wav_utils.plot_wavs(samples, res, stereo=stereo)
+        wav_utils.plot_wavs(samples, result, stereo=stereo)
     except:
         pass
 
@@ -52,58 +65,12 @@ async def collect(din, *, result, samples_num):
     async with din as val:
         if len(result) % 10 == 0:
             if samples_num is not None:
-                print(
-                    f"Calculated {len(result)}/{samples_num} samples",
-                    end='\r')
+                print(f"Calculated {len(result)}/{samples_num} samples",
+                      end='\r')
             else:
                 print(f"Calculated {len(result)} samples", end='\r')
 
-        if typeof(din.dtype, Int):
-            result.append(int(val))
-        else:
+        if typeof(din.dtype, Tuple):
             result.append((int(val[0]), int(val[1])))
-
-
-def mono_echo_sim(seq,
-                  sample_rate,
-                  sample_width,
-                  cosim=True,
-                  feedback_gain=0.5,
-                  delay=0.250,
-                  stereo=True):
-    sample_bit_width = 8 * sample_width
-
-    result = []
-    drv(t=Int[sample_bit_width], seq=seq) \
-        | echo(feedback_gain=feedback_gain,
-               sample_rate=sample_rate,
-               delay=delay,
-               sim_cls=SimVerilated if cosim else None) \
-        | collect(result=result, samples_num=len(seq))
-
-    sim(outdir='./build')
-
-    return result
-
-
-def stereo_echo_sim(seq,
-                    sample_rate,
-                    sample_width,
-                    cosim=False,
-                    feedback_gain=0.5,
-                    delay=0.250,
-                    stereo=True,
-                    verilator_cosim=False):
-    sample_bit_width = 8 * sample_width
-
-    result = []
-    drv(t=Tuple[Int[sample_bit_width], Int[sample_bit_width]], seq=seq) \
-        | stereo_echo(feedback_gain=feedback_gain,
-                      sample_rate=sample_rate,
-                      delay=delay,
-                      sim_cls=SimVerilated if cosim else None) \
-        | collect(result=result, samples_num=len(seq))
-
-    sim(outdir='./build')
-
-    return result
+        else:
+            result.append(int(val))

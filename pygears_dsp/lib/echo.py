@@ -1,30 +1,21 @@
-from pygears import gear, Intf
-from pygears.lib import fifo, union_collapse, fmap, decouple, filt
-from pygears.typing import Int, ceil_pow2
-from pygears.lib import priority_mux
-
-
-def float_to_fixp(number, precision, sample_width):
-    rng = (2**float(sample_width - precision)) / 2
-    number = number / rng
-    number = int(number * 2**(sample_width - 1))
-    return number
+from pygears import gear, Intf, alternative
+from pygears.lib import decouple, fmap, union_collapse
+from pygears.typing import Fixp, ceil_pow2, Tuple
+from pygears.lib import flatten, priority_mux, replicate, once
 
 
 @gear
-def fill_void(din, fill):
-    return priority_mux(din, fill) \
+def prefill(din, *, num, dtype):
+    fill = once(val=dtype(0)) \
+        | replicate(num) \
+        | flatten
+
+    return priority_mux(fill, din) \
         | union_collapse
 
 
 @gear
-def echo(din: Int['W'],
-         *,
-         feedback_gain,
-         sample_rate,
-         delay,
-         precision=15,
-         sample_width=b'W'):
+def echo(din: Fixp, *, feedback_gain, sample_rate, delay):
     """Performs echo audio effect on the continuous input sample stream
 
     Args:
@@ -46,10 +37,9 @@ def echo(din: Int['W'],
     # Parameter calculation #
     #########################
 
-    sample_dly_len = sample_rate * delay
+    sample_dly_len = round(sample_rate * delay)
     fifo_depth = ceil_pow2(sample_dly_len)
-    feedback_gain_fixp = din.dtype(
-        float_to_fixp(feedback_gain, precision, sample_width))
+    feedback_gain_fixp = din.dtype(feedback_gain)
 
     #########################
     # Hardware description  #
@@ -58,30 +48,28 @@ def echo(din: Int['W'],
     dout = Intf(din.dtype)
 
     feedback = dout \
-        | fifo(depth=fifo_depth, threshold=sample_dly_len, regout=True) \
-        | fill_void(fill=din.dtype(0)) \
-        | decouple
+        | decouple(depth=fifo_depth) \
+        | prefill(dtype=din.dtype, num=sample_dly_len)
 
-    feedback_attenuated = (feedback * feedback_gain_fixp) >> precision
+    feedback_attenuated = (feedback * feedback_gain_fixp) | din.dtype
 
     dout |= (din + feedback_attenuated) | dout.dtype
 
     return dout
 
 
+@alternative(echo)
 @gear
 def stereo_echo(
-        din,  # audio samples
+        din: Tuple[Fixp, Fixp],  # audio samples
         *,
         feedback_gain,  # feedback gain == echo gain
         sample_rate,  # sample_rate in samples per second
-        delay,  # delay in seconds
-        precision=15):
+        delay  # delay in seconds
+):
 
-    mono_echo = echo(
-        feedback_gain=feedback_gain,
-        sample_rate=sample_rate,
-        delay=delay,
-        precision=precision)
+    mono_echo = echo(feedback_gain=feedback_gain,
+                     sample_rate=sample_rate,
+                     delay=delay)
 
     return din | fmap(f=(mono_echo, mono_echo))
