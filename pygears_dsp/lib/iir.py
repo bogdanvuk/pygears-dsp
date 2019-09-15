@@ -1,4 +1,5 @@
 from pygears import gear, Intf
+from pygears.typing import Fixp
 from pygears.lib import dreg, decouple
 
 
@@ -12,9 +13,9 @@ def iir_direct1_sos(din, *, a, b, gain):
     a1 = (zu1 * b[1]) + din
     a2 = (zu2 * b[2]) + a1
 
-    y = Intf(a2.dtype)  # type????
+    y = Intf(Fixp[12, 97])  # type????
 
-    zy1 = y | decouple(init=0)
+    zy1 = y | a2.dtype | decouple(init=0)
     zy2 = zy1 | dreg(init=0)
 
     a3 = a2 - (zy1 * a[1])

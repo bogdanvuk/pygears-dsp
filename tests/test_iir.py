@@ -3,7 +3,7 @@ import numpy as np
 from pygears_dsp.lib.iir import iir_direct1_sos
 from pygears.lib import drv, shred, collect
 from pygears.typing import Fixp, Float
-from pygears.sim import sim
+from pygears.sim import sim, verilate
 from pygears_control.lib import lti, scope
 from pygears import config
 
@@ -37,15 +37,14 @@ b_fixp = [Fixp[1, 23](i) for i in b]
 din = drv(t=Fixp[5, 24], seq=seq)
 dout = din | iir_direct1_sos(a=b_fixp, b=b_fixp, gain=Fixp[1, 23](0.123123))
 # dout | Float | scope
-result = []
-dout | collect(result=result)
+res = []
+dout | collect(result=res)
 
 ref = signal.lfilter(b, b, seq)
+verilate('/iir_direct1_sos')
+sim('/tools/home/tmp/iir', timeout=len(seq), check_activity=False)
 
-sim('/tools/home/tmp/vcd_test', timeout=len(seq), check_activity=False)
-sim(timeout=len(seq), check_activity=False)
-
-fp_res = [float(r) for r in result]
+fp_res = [float(r) for r in res]
 
 diff = [abs(a-b) for a, b in zip(ref, fp_res)]
 print(diff)
