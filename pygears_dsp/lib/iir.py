@@ -2,6 +2,7 @@ from pygears import gear, Intf
 from pygears.typing import Fixp
 from pygears.lib import dreg, decouple
 
+
 @gear
 def iir_1dsos(din, *, a, b, gain):
     din = din * gain
@@ -9,9 +10,9 @@ def iir_1dsos(din, *, a, b, gain):
     zu2 = zu1 | dreg(init=0)
 
     a1 = (zu1 * b[1]) + (zu2 * b[2])
-    a2 = a1 + (din*b[0])
+    a2 = a1 + (din * b[0])
 
-    y = Intf(a2.dtype*2)
+    y = Intf(a2.dtype * 2)
 
     zy1 = y | a2.dtype | decouple(init=0)
     zy2 = zy1 | dreg(init=0)
@@ -20,16 +21,18 @@ def iir_1dsos(din, *, a, b, gain):
 
     return y
 
+
 @gear
 def iir_2tsos(din, *, a, b, gain):
     din = din * gain
-    y = Intf(din.dtype*5)
+    y = Intf(din.dtype * 5)
     a1 = ((din * b[2]) - (y * a[2]))
     z1 = a1 | dreg(init=0)
     z2 = ((din * b[1]) + z1 - (y * a[1])) | decouple(init=0)
-    y |= (din*b[0]) + z2
+    y |= (din * b[0]) + z2
 
     return y
+
 
 @gear
 def iir_df1dsos(din, *, a, b, gain, ogain):
@@ -39,6 +42,7 @@ def iir_df1dsos(din, *, a, b, gain, ogain):
 
     dout = dout * ogain
     return dout
+
 
 @gear
 def iir_df2tsos(din, *, a, b, gain, ogain):
