@@ -1,50 +1,51 @@
 from scipy import signal
-import numpy as np
-from pygears_dsp.lib.iir import iir_direct1_sos
-from pygears.lib import drv, shred, collect
-from pygears.typing import Fixp, Float
-from pygears.sim import sim, verilate
-from pygears_control.lib import lti, scope
+from pygears_dsp.lib.iir import iir_df1dsos, iir_df2tsos
+from pygears.sim import sim
+from pygears_control.lib import scope
 from pygears import config
+from math import pi, sin
+import pytest
+from pygears.lib import check, drv
+from pygears.typing import Fixp, Float
+from pygears.sim import sim
 
-from math import sin, cos, pi
 
-b, a = signal.iirfilter(1, [2 * np.pi * 50, 2 * np.pi * 200],
-                        rs=60,
-                        btype='band',
-                        analog=True,
-                        ftype='cheby2')
+@pytest.mark.parametrize('impl', [iir_df1dsos, iir_df2tsos])
+def test_iir_direct(tmpdir, impl):
+    config['sim/clk_freq'] = 100000
+    t = list(range(config['sim/clk_freq']))[0:100]
+    fs = config['sim/clk_freq']
+    f1 = 1000
+    f2 = 70000
 
-config['sim/clk_freq'] = 100000
-t = list(range(config['sim/clk_freq']))[0:100]
-fs = config['sim/clk_freq']
-f1 = 1000
-f2 = 70000
+    seq = []
+    for n in t:
+        seq.append(1 * sin(2 * pi * f1 / fs * n) +
+                   0.1 * sin(2 * pi * f2 / fs * n))
 
-seq = []
-for n in t:
-    seq.append(10 * sin(2 * pi * f1 / fs * n) + 1 * sin(2 * pi * f2 / fs * n))
+    sos = signal.butter(
+        N=5, Wn=30000 / 100000, btype='lowpass', analog=False, output='sos')
 
-b = [
-    0.211939524148286456695089441382151562721,
-    0.471832709834875574372858864080626517534,
-    0.471832709834875574372858864080626517534,
-    0.211939524148286456695089441382151562721
-]
+    a, b = [], []
+    for s in sos:
+        b.append(list(s[0:3]))
+        a.append(list(s[3:]))
 
-b_fixp = [Fixp[1, 23](i) for i in b]
+    t_coef = Fixp[2, 32]
 
-din = drv(t=Fixp[5, 24], seq=seq)
-dout = din | iir_direct1_sos(a=b_fixp, b=b_fixp, gain=Fixp[1, 23](0.123123))
-# dout | Float | scope
-res = []
-dout | collect(result=res)
+    b = [[t_coef(coef) for coef in section] for section in b]
+    a = [[t_coef(coef) for coef in section] for section in a]
 
-ref = signal.lfilter(b, b, seq)
-verilate('/iir_direct1_sos')
-sim('/tools/home/tmp/iir', timeout=len(seq), check_activity=False)
+    gain = [Fixp[1, 23](1)] * len(b)
+    ref = signal.sosfilt(sos, seq)
+    fp_ref = [float(r) for r in ref]
 
-fp_res = [float(r) for r in res]
+    drv(t=Fixp[5, 24], seq=seq) \
+        | impl(a=a,b=b, gain=gain, ogain=1) \
+        | Float \
+        | check(ref=fp_ref[:len(seq)], cmp=lambda x, y: abs(x-y) < 1e-3)
 
-diff = [abs(a-b) for a, b in zip(ref, fp_res)]
-print(diff)
+    sim(tmpdir, check_activity=False)
+
+
+# test_iir_direct('build', impl=iir_df1dsos)
