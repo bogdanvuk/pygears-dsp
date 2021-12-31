@@ -1,23 +1,44 @@
 from pygears import gear
-from pygears.lib import dreg
+from pygears.lib import dreg, qround, saturate
 
 
 @gear
 def fir_direct(din, *, b):
-    reg_s = din
-    add_s = reg_s * b[0]
-    for coef in b[1:]:
-        reg_s = reg_s | dreg(init=0)
-        add_s = add_s + (reg_s * coef)
 
-    return add_s
+    # init delayed input and output sum
+    x = din
+    y_sum = x * b[0]
+
+    # construct filter structure for all fir coefficients
+    for b_coef in b[1:]:
+
+        # add delay
+        x = x | dreg(init=0)
+
+        # summation
+        y_sum = y_sum + (x * b_coef)
+
+    # format sum as input
+    return y_sum | qround(fract=din.dtype.fract) | saturate(t=din.dtype)
 
 
 @gear
 def fir_transposed(din, *, b):
-    reg_s = din * b[0]
-    for coef in b[1:]:
-        gain_s = din * coef
-        reg_s = gain_s + (reg_s | dreg(init=0))
 
-    return reg_s
+    # init output sum
+    y_sum = din * b[0]
+
+    # construct filter structure for all fir coefficients
+    for b_coef in b[1:]:
+
+        # multiply input with b coefficient
+        mult_b_result = din * b_coef
+
+        # delay output sum
+        delayed_y_sum = y_sum | dreg(init=0)
+
+        # add to output sum
+        y_sum = mult_b_result + delayed_y_sum
+
+    # format sum as input
+    return y_sum | qround(fract=din.dtype.fract) | saturate(t=din.dtype)
