@@ -33,7 +33,7 @@ def pytest_generate_tests(metafunc):
     #     reg['logger/sim/level'] = logging.DEBUG
     # print(f"re {reg['logger/sim/level']}")
 
-    if 'seed' in metafunc.fixturenames:
+    if 'do_cosim' in metafunc.fixturenames:
         if cosim_value is not None:
             if int(cosim_value) == 1:
                 metafunc.parametrize("do_cosim", [True])
