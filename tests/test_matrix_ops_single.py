@@ -12,8 +12,8 @@ from tests.conftest import set_seed
 
 ########################## DESIGN CONTROLS ##########################
 num_cols = 4
-num_rows = 4
-cols_per_row = 2
+num_rows = 4  # HINT suported equel dimensions which are power of 2 (4,8,16..)
+cols_per_row = 2  # HINT supported even numbers >=2
 ########################### TEST CONTROLS ###########################
 sv_gen = 1
 ###########################################################################
