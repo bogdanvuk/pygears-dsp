@@ -1,7 +1,7 @@
 from pygears import gear
 from pygears.typing import Ufixp
 from enum import IntEnum
-from pygears.lib import trunc, saturate, qround, pipeline
+from pygears.lib import trunc, saturate, qround, pipeline, ccat, field_sel
 
 
 class Overflow(IntEnum):
@@ -33,12 +33,14 @@ def mult_dsp(a, b, *, t=None, quantization=Quantization.TRUNCATE, overflow=Overf
         else:
             raise Exception(f"Parameter overflow has to be chosen from Overflow.WRAP_AROUND|SATURATE")
     elif type(t).__base__.__name__ == 'FixpnumberType':
+        
         if quantization == Quantization.TRUNCATE:
             quant_prod = trunc(prod, t=t.base[prod.dtype.integer, prod.dtype.integer + t.fract])
         elif quantization == Quantization.ROUND:
             quant_prod = qround(prod, fract=t.fract)
         else:
             raise Exception(f"Parameter quantization has to be chosen from Quantization.TRUNCATE|ROUND")
+        
         if overflow == Overflow.WRAP_AROUND:
             res = trunc(quant_prod, t=t)
         elif overflow == Overflow.SATURATE:
@@ -47,6 +49,7 @@ def mult_dsp(a, b, *, t=None, quantization=Quantization.TRUNCATE, overflow=Overf
             raise Exception(f"Parameter overflow has to be chosen from Overflow.WRAP_AROUND|SATURATE")
     else:
         raise Exception('t has to be either IntegerType or FixpnumberType')
+    
     if latency:
         return res | pipeline(length=latency)
     else:
@@ -55,6 +58,7 @@ def mult_dsp(a, b, *, t=None, quantization=Quantization.TRUNCATE, overflow=Overf
 
 @gear
 def add_sub_dsp(a, b, *, t=None, quantization=Quantization.TRUNCATE, overflow=Overflow.WRAP_AROUND, latency=0, operation=Operation.ADD):
+
     if operation == Operation.ADD:
         prod = a + b
     elif operation == Operation.SUB:
@@ -72,12 +76,14 @@ def add_sub_dsp(a, b, *, t=None, quantization=Quantization.TRUNCATE, overflow=Ov
         else:
             raise Exception(f"Parameter overflow has to be chosen from Overflow.WRAP_AROUND|SATURATE")
     elif type(t).__base__.__name__ == 'FixpnumberType':
+
         if quantization == Quantization.TRUNCATE:
             quant_prod = trunc(prod, t=t.base[prod.dtype.integer, prod.dtype.integer + t.fract])
         elif quantization == Quantization.ROUND:
             quant_prod = qround(prod, fract=t.fract)
         else:
             raise Exception(f"Parameter quantization has to be chosen from Quantization.TRUNCATE|ROUND")
+
         if overflow == Overflow.WRAP_AROUND:
             res = trunc(quant_prod, t=t)
         elif overflow == Overflow.SATURATE:
@@ -86,7 +92,13 @@ def add_sub_dsp(a, b, *, t=None, quantization=Quantization.TRUNCATE, overflow=Ov
             raise Exception(f"Parameter overflow has to be chosen from Overflow.WRAP_AROUND|SATURATE")
     else:
         raise Exception('t has to be either IntegerType or FixpnumberType')
+
     if latency:
         return res | pipeline(length=latency, feedback=True)
     else:
         return res
+    
+    
+@gear
+def mux_dsp(sel, *din):
+    return field_sel(sel, ccat(*din))
