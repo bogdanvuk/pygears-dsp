@@ -21,6 +21,29 @@ class Operation(IntEnum):
 
 @gear
 def mult_dsp(a, b, *, t=None, quantization=Quantization.TRUNCATE, overflow=Overflow.WRAP_AROUND, latency=0):
+    """
+    Computes the product of the data on its inputs. Inputs can be of Integer or Fixed point type.
+
+    Parameters
+    ----------
+    t - Desired output data type. If omitted, output type will be infered from input types.
+
+    quantization - Desired method for reducing the fractional portion of the product.
+                   Quantization.TRUNCATE | Quantization.ROUND
+
+    overflow - Desired method for dealing with overflow.
+               Overflow.WRAP_AROUND | Overflow.SATURATE
+
+    latency - Number of clock cycles by which the output is delayed.
+
+    Example
+    -------
+    mult_dsp(din0, din1,
+             t=Fixp[6, 14],
+             overflow=Overflow.SATURATE,
+             quantization=Quantization.ROUND,
+             latency=4)
+    """
     prod = a * b
 
     if t is None:
@@ -33,7 +56,7 @@ def mult_dsp(a, b, *, t=None, quantization=Quantization.TRUNCATE, overflow=Overf
         else:
             raise Exception(f"Parameter overflow has to be chosen from Overflow.WRAP_AROUND|SATURATE")
     elif type(t).__base__.__name__ == 'FixpnumberType':
-        
+
         if quantization == Quantization.TRUNCATE:
             quant_prod = trunc(prod, t=t.base[prod.dtype.integer, prod.dtype.integer + t.fract])
         elif quantization == Quantization.ROUND:
@@ -58,6 +81,34 @@ def mult_dsp(a, b, *, t=None, quantization=Quantization.TRUNCATE, overflow=Overf
 
 @gear
 def add_sub_dsp(a, b, *, t=None, quantization=Quantization.TRUNCATE, overflow=Overflow.WRAP_AROUND, latency=0, operation=Operation.ADD):
+    """
+    Computes the sum/difference of the data on its inputs. Inputs can be of Integer or Fixed point type.
+    In case of subtraction, first input is the minuend, while second input is the subtrahend.
+
+    Parameters
+    ----------
+    t - Desired output data type. If omitted, output type will be infered from input types.
+
+    operation - Specifies the operation to be either addition or subtraction.
+                Operation.ADD | Operation.SUB
+
+    quantization - Desired method for reducing the fractional portion of the product.
+                   Quantization.TRUNCATE | Quantization.ROUND
+
+    overflow - Desired method for dealing with overflow.
+               Overflow.WRAP_AROUND | Overflow.SATURATE
+
+    latency - Number of clock cycles by which the output is delayed.
+
+    Example
+    -------
+    add_sub_dsp(din0, din1,
+             t=Fixp[6, 14],
+             operation=Operation.ADD,
+             overflow=Overflow.SATURATE,
+             quantization=Quantization.ROUND,
+             latency=4)
+    """
 
     if operation == Operation.ADD:
         prod = a + b
@@ -101,4 +152,11 @@ def add_sub_dsp(a, b, *, t=None, quantization=Quantization.TRUNCATE, overflow=Ov
     
 @gear
 def mux_dsp(sel, *din):
+    """
+    Selects one data input to be propagated to output based on the value of sel input.
+
+    Example
+    -------
+    mux_dsp(sel, din0, din1)
+    """
     return field_sel(sel, ccat(*din))
