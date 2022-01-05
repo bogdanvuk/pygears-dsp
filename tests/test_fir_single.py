@@ -13,7 +13,6 @@ test_sel = 1  # 0=fir_direct; 1=fir_transposed
 enable_svgen = 0  # enables systemVerilog generation
 ##########################################################################
 
-    
 # generate b coefficients
 b_coef = firwin(8, [0.05, 0.95], width=0.05, pass_zero=False)
 
@@ -34,7 +33,10 @@ if test_sel == 0:
     | check(ref=res[:len(x)], cmp=lambda x, y: abs(x-y) < 1e-3)
 
     if enable_svgen:
-        cosim('fir_direct', 'verilator', outdir='../../outputs/fir/rtl', timeout=1000)
+        cosim('fir_direct',
+              'verilator',
+              outdir='../../outputs/fir/rtl',
+              timeout=1000)
 else:
     drv(t=b_coef_type, seq=x) \
     | fir_transposed(b=b_coef_fixp) \
@@ -42,6 +44,9 @@ else:
     | check(ref=res[:len(x)], cmp=lambda x, y: abs(x-y) < 1e-3)
 
     if enable_svgen:
-        cosim('fir_transposed', 'verilator', outdir='../../outputs/fir/rtl', timeout=1000)
+        cosim('fir_transposed',
+              'verilator',
+              outdir='../../outputs/fir/rtl',
+              timeout=1000)
 
 sim()

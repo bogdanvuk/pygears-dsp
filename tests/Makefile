@@ -14,17 +14,17 @@ help:           ## Show this help.
 	@fgrep -h "##" $(MAKEFILE_LIST) | fgrep -v fgrep | sed -e 's/\\$$//' | sed -e 's/##//'
 
 fir:			## run IIR filter tests once
-	pytest $(opts) test_fir.py $(save_to)
+	pytest $(opts) test_fir_regression.py $(save_to)
 
 fir_regr:		## run IIR filter test in a regression
-	pytest $(opts) test_fir.py::test_fir_random --num=50 --random=1 $(save_to}
-	pytest $(opts) test_fir.py::test_fir_random_type --num=50 --random=1 $(save_to)
-	pytest $(opts) test_fir.py::test_fir_limits --num=3 --random=1 $(save_to)
-	pytest $(opts) test_fir.py::test_fir_sine --num=3 --random=1 $(save_to)
+	pytest $(opts) test_fir_regression.py::test_fir_random --num=50 --random=1 $(save_to}
+	pytest $(opts) test_fir_regression.py::test_fir_random_type --num=50 --random=1 $(save_to)
+	pytest $(opts) test_fir_regression.py::test_fir_limits --num=3 --random=1 $(save_to)
+	pytest $(opts) test_fir_regression.py::test_fir_sine --num=3 --random=1 $(save_to)
 
 
 iir:			## run IIR filter tests once
-	pytest $(opts) test_iir.py $(save_to)
+	pytest $(opts) test_iir_regression.py $(save_to)
 
 cordic: 		## run cordic filter tests once
-	pytest $(opts) test_cordic.py $(save_to)
+	pytest $(opts) test_cordic_regression.py $(save_to)

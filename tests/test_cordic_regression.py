@@ -113,8 +113,7 @@ def test_directed(tmpdir):
                               iw=iw,
                               norm_gain_sin=False,
                               norm_gain_cos=False,
-                              name='dut'
-                              ),
+                              name='dut'),
              ref=[ref_seq_sin, ref_seq_cos])
 
     cosim('/dut', 'verilator')
