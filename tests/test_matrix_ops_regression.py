@@ -13,11 +13,6 @@ from tests.conftest import set_seed
 mat2 = np.random.randint(256, size=(8, 1, 8))
 mat1 = np.random.randint(256, size=(1, 8, 8))
 
-print(type(mat1))
-print(mat1)
-print(type(mat2))
-print(mat2)
-
 
 def create_valid_cfg(cols_per_row, mat1):
     num_rows, num_cols = np.squeeze(mat1).shape
