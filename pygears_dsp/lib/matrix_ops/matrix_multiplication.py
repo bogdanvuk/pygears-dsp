@@ -1,4 +1,4 @@
-from gears_matrix_ops.lib.mult_by_column import column_multiplication
+from pygears_dsp.lib.matrix_ops.mult_by_column import column_multiplication
 
 from pygears import gear
 from pygears.lib import flatten, ccat, dreg, decouple, dispatch, qdeal, group
@@ -12,8 +12,9 @@ TCfg = Tuple[{
 }]
 
 
-@gear(hdl={'compile': True})
-async def row_dispatch(din, *, cols_per_row) -> Tuple['din', Uint['cols_per_row']]:
+@gear
+async def row_dispatch(din, *,
+                       cols_per_row) -> Tuple['din', Uint['cols_per_row']]:
     async for data, eot in din:
         yield (data, eot), Uint[cols_per_row].max
 

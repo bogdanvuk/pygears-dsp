@@ -22,7 +22,7 @@ def dot(din: Queue[Array[Tuple[Int, Int], 'd']]):
         | queuemap(f=mul_add, balance=decouple(depth=16, latency=2))
 
 
-@gear(hdl={'compile': True})
+@gear
 async def vent(write_data, reader) -> b'(write_data, Queue[reader.data])':
     async for data in write_data:
         yield data, None
@@ -33,7 +33,7 @@ async def vent(write_data, reader) -> b'(write_data, Queue[reader.data])':
         yield None, (r, all(last))
 
 
-@gear(hdl={'compile': True})
+@gear
 async def qreplicate(din: Queue, repl_num) -> b'Queue[din.data, din.lvl+1]':
     async with repl_num as rep:
         async for data, eot in din:
@@ -43,16 +43,17 @@ async def qreplicate(din: Queue, repl_num) -> b'Queue[din.data, din.lvl+1]':
                     await clk()
 
 
-@gear(hdl={'compile': True})
+@gear
 async def rd_req_column_iter(cfg) -> Queue[Uint[16], 2]:
     async with cfg as c:
         async for row_n, row_eot in qrange(c["num_rows"]):
             async for col_n, col_eot in qrange(c["cols_per_multiplier"]):
-                    yield trunc(col_n, Uint[16]), row_eot @ col_eot
+                yield trunc(col_n, Uint[16]), row_eot @ col_eot
 
 
-@gear(hdl={'compile': True})
-async def wr_column_req(din: Queue, *, w_addr) -> Tuple[Uint['w_addr'], 'din.data']:
+@gear
+async def wr_column_req(din: Queue, *,
+                        w_addr) -> Tuple[Uint['w_addr'], 'din.data']:
     cnt = Uint[w_addr](0)
     async for d, _ in din:
         yield cnt, d
@@ -75,14 +76,16 @@ def column_multiplication(
         with one column at the time, it can also store several columns in it."""
 
     # We want to send every row cols_per_multiplier times
-    row = row | project | qreplicate(repl_num=cfg['cols_per_multiplier']) | flatten
+    row = row | project | qreplicate(
+        repl_num=cfg['cols_per_multiplier']) | flatten
     reader = rd_req_column_iter(cfg | buff)
     # First we want to write to SDP all columns, then we can start to read them, and do multiplication
     column, rd_vent = vent(column, reader | decouple)
 
     write_data = wr_column_req(column, w_addr=reader.dtype.data.width)
 
-    column_for_mult = rd_vent | queuemap(f=sdp(write_data), balance=decouple) | dreg
+    column_for_mult = rd_vent | queuemap(f=sdp(write_data),
+                                         balance=decouple) | dreg
     dot_data, dot_eot = czip(row | dreg | decouple(latency=2, depth=8),
                              column_for_mult) | queuemap(f=array_zip)
 
