@@ -28,3 +28,8 @@ iir:			## run IIR filter tests once
 
 cordic: 		## run cordic filter tests once
 	pytest $(opts) test_cordic_regression.py $(save_to)
+
+matrix: 	    ## run matrix_ops tests ondce
+	pytest $(opts) test_matrix_ops_regression.py $(save_to)
+
+all: fir iir cordic matrix

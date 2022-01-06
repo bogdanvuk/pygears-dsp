@@ -27,7 +27,7 @@ def create_valid_cfg(cols_per_row, mat1):
 
 @pytest.mark.parametrize('mat1', [mat1])
 @pytest.mark.parametrize('mat2', [mat2])
-@pytest.mark.parametrize('cols_per_row', [2])
+@pytest.mark.parametrize('cols_per_row', [2, 4])
 @pytest.mark.parametrize('impl', ['high', 'hw'])
 def test_matrix_mult(impl, mat1, mat2, cols_per_row, seed):
     set_seed(seed)
