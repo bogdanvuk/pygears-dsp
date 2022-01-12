@@ -49,8 +49,7 @@ def wav_echo_sim(ifn,
                sim_cls=SimVerilated if cosim else None) \
         | collect(result=result, samples_num=len(samples))
 
-    # sim(outdir='./build', extens=[Profiler])
-    sim(outdir='./build')
+    sim(resdir='./build')
 
     wav_utils.dump_wav(ofn, result, params, stereo=stereo)
 
