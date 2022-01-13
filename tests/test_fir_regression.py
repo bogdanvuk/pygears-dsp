@@ -1,5 +1,6 @@
 import logging
 import random
+import traceback
 
 import numpy as np
 import pytest
@@ -11,7 +12,8 @@ from pygears.sim import log, sim
 from pygears.sim.sim import cosim
 from pygears.typing import Fixp, Float
 from pygears_dsp.lib.fir import fir_direct, fir_transposed
-from tests.conftest import fixp_sat, random_choice_seq, random_seq, set_seed, sine_seq
+from tests.conftest import (fixp_sat, random_choice_seq, random_seq, set_seed,
+                            sine_seq)
 
 
 def fir_compare(x, y):
@@ -151,22 +153,30 @@ def test_fir_sine(freq, impl, seed, do_cosim):
     res = fir_sim(impl, t_b, seq, do_cosim=do_cosim)
 
 
-## >> used to probe all signals
-# reg['debug/trace'] = ['*']
+# run individual test with python command
+if __name__ == '__main__':
+    ## >> used to probe all signals
+    reg['debug/trace'] = ['*']
 
-## >> used to enable JSON file creation for webviewer support
-# reg['debug/webviewer'] = True
+    ## >> used to enable JSON file creation for webviewer support
+    reg['debug/webviewer'] = True
 
-## >> used to break to debugger on error
-# reg['logger/sim/error'] = 'debug'  # on error open cmdline debugger
+    ## >> used to break to debugger on error
+    # reg['logger/sim/error'] = 'debug'  # on error open cmdline debugger
 
-## >> used to continue the simulation on errors
-# reg['logger/sim/error'] = 'continue'  # on error continue
+    ## >> used to continue the simulation on errors
+    # reg['logger/sim/error'] = 'continue'  # on error continue
 
-## >> used to print additional debug messages
-# reg['logger/sim/level'] = logging.DEBUG
+    ## >> used to print additional debug messages
+    # reg['logger/sim/level'] = logging.DEBUG
 
-## HINT : for debugging individual tests
-# test_fir_random(fir_direct, 12, do_cosim=True)
-# test_fir_limits(fir_transposed, 1, do_cosim=True)
-# test_fir_sine(1_000_000,fir_direct, 12, do_cosim=True)
+    try:
+        ## HINT : for debugging individual tests
+        test_fir_random(fir_direct, 12, do_cosim=True)
+        # test_fir_limits(fir_transposed, 1, do_cosim=True)
+        # test_fir_sine(1_000_000,fir_direct, 12, do_cosim=True)
+        log.info("\033[92m //==== PASS ====// \033[90m")
+    except:
+        # printing stack trace
+        traceback.print_exc()
+        log.info("\033[91m //==== FAILED ====// \033[90m")

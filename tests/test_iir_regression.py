@@ -1,6 +1,7 @@
 import logging
 import random
 from math import pi, sin
+import traceback
 
 import pytest
 from scipy import signal
@@ -49,8 +50,8 @@ def iir_sim(impl,
     b = [[t_coef(coef) for coef in section] for section in b]
     a = [[t_coef(coef) for coef in section] for section in a]
 
-    log.info(f'Generated B coeff: {b}')
-    log.info(f'Generated A coeff: {a}')
+    log.debug(f'Generated B coeff: {b}')
+    log.debug(f'Generated A coeff: {a}')
 
     gain = [t_in(1)] * len(b)
     ref = signal.sosfilt(sos, seq)
@@ -60,8 +61,8 @@ def iir_sim(impl,
     for i, r in enumerate(ref):
         ref[i] = fixp_sat(t_out, float(r))
 
-    log.info(f'Generated sequence: {seq}')
-    log.info(f'Refferenc result: {ref}')
+    log.debug(f'Generated sequence: {seq}')
+    log.debug(f'Refferenc result: {ref}')
     drv(t=t_in, seq=seq) \
     | impl(a=a, b=b, gain=gain, ogain=t_in(1)) \
     | Float \
@@ -113,7 +114,7 @@ def test_iir_direct(tmpdir, impl, seed, do_cosim):
     ref = signal.sosfilt(sos, seq)
     fp_ref = [float(r) for r in ref]
 
-    log.info(f'Generated sequence: {seq}')
+    log.debug(f'Generated sequence: {seq}')
     drv(t=Fixp[5, 24], seq=seq) \
     | impl(a=a, b=b, gain=gain, ogain=Fixp[5, 24](1)) \
     | Float \
@@ -207,15 +208,23 @@ def test_fir_sine(freq, impl, seed, do_cosim):
     res = iir_sim(impl, ftype, ftype, ftype, seq, do_cosim=do_cosim)
 
 
-# reg['logger/sim/error'] = 'debug'  # on error open cmdline debugger
-# reg['logger/sim/error'] = 'continue'  # on error continue
-# reg['logger/sim/level'] = logging.DEBUG
-reg['debug/trace'] = ['*']
-reg['debug/webviewer'] = True
+# run individual test with python command
+if __name__ == '__main__':
+    # reg['logger/sim/error'] = 'debug'  # on error open cmdline debugger
+    # reg['logger/sim/error'] = 'continue'  # on error continue
+    # reg['logger/sim/level'] = logging.DEBUG
+    reg['debug/trace'] = ['*']
+    reg['debug/webviewer'] = True
 
-## HINT : for debugging individual tests
-# test_iir_direct('build', iir_df2tsos, 2,do_cosim=False)
-# test_iir_random(iir_df2tsos, 1,do_cosim=False)
-# test_iir_random_type(iir_df2tsos, 1,do_cosim=False)
-test_iir_limits(46, 3, iir_df2tsos, 1, do_cosim=False)
-# test_fir_sine(100_000,iir_df2tsos, 12,do_cosim=False)
+    try:
+        ## HINT : for debugging individual tests
+        # test_iir_direct('build', iir_df2tsos, 2,do_cosim=False)
+        # test_iir_random(iir_df2tsos, 1,do_cosim=False)
+        # test_iir_random_type(iir_df2tsos, 1,do_cosim=False)
+        test_iir_limits(46, 3, iir_df2tsos, 1, do_cosim=False)
+        # test_fir_sine(100_000,iir_df2tsos, 12,do_cosim=False)
+        log.info("\033[92m //==== PASS ====// \033[90m")
+    except:
+        # printing stack trace
+        traceback.print_exc()
+        log.info("\033[91m //==== FAILED ====// \033[90m")

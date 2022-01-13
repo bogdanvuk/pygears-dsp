@@ -1,8 +1,10 @@
+import traceback
 from pygears.typing import Fixp, Array, code
 from pygears.lib import drv, check, serialize, flatten, collect
-from pygears.sim import sim, cosim
+from pygears.sim import sim, cosim, log
 from pygears_dsp.lib.fft_bf import FFT_list, FFT_recursive
 from scipy.fft import fft
+from pygears import reg
 import math
 
 ########################## DESIGN CONTROLS ##########################
@@ -15,6 +17,10 @@ dut_select = 0  # 0 = FFT_list, 1=FFT_recursive
 sv_gen = 1
 tolerated_output_difference = 1e-1
 ###########################################################################
+# probe all signals
+reg['debug/trace'] = ['*']
+# enable webviewer support
+reg['debug/webviewer'] = True
 
 # helpers
 D = 2**stages
@@ -101,4 +107,11 @@ else:
               timeout=10)
 
 # start test
-sim('build/fft_bf/')
+
+try:
+    sim('build/fft_bf/')
+    log.info("\033[92m //==== PASS ====// \033[90m")
+except:
+    # printing stack trace
+    traceback.print_exc()
+    log.info("\033[91m //==== FAILED ====// \033[90m")

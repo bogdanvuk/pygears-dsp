@@ -1,10 +1,11 @@
 from os.path import abspath
+import traceback
 
 import numpy as np
 from scipy.signal import firwin
 
 from pygears.lib import check, drv
-from pygears.sim import cosim, sim
+from pygears.sim import cosim, sim, log
 from pygears.typing import Fixp, Float
 from pygears_dsp.lib.fir import fir_direct, fir_transposed
 
@@ -25,28 +26,33 @@ x = np.random.random(size=(10, ))
 
 # calculated expected outputs
 res = np.convolve(x, b_coef)
+try:
+    if test_sel == 0:
+        drv(t=b_coef_type, seq=x) \
+        | fir_direct(b=b_coef_fixp) \
+        | Float \
+        | check(ref=res[:len(x)], cmp=lambda x, y: abs(x-y) < 1e-3)
 
-if test_sel == 0:
-    drv(t=b_coef_type, seq=x) \
-    | fir_direct(b=b_coef_fixp) \
-    | Float \
-    | check(ref=res[:len(x)], cmp=lambda x, y: abs(x-y) < 1e-3)
+        if enable_svgen:
+            cosim('fir_direct',
+                  'verilator',
+                  outdir='../../outputs/fir/rtl',
+                  timeout=1000)
+    else:
+        drv(t=b_coef_type, seq=x) \
+        | fir_transposed(b=b_coef_fixp) \
+        | Float \
+        | check(ref=res[:len(x)], cmp=lambda x, y: abs(x-y) < 1e-3)
 
-    if enable_svgen:
-        cosim('fir_direct',
-              'verilator',
-              outdir='../../outputs/fir/rtl',
-              timeout=1000)
-else:
-    drv(t=b_coef_type, seq=x) \
-    | fir_transposed(b=b_coef_fixp) \
-    | Float \
-    | check(ref=res[:len(x)], cmp=lambda x, y: abs(x-y) < 1e-3)
+        if enable_svgen:
+            cosim('fir_transposed',
+                  'verilator',
+                  outdir='../../outputs/fir/rtl',
+                  timeout=1000)
 
-    if enable_svgen:
-        cosim('fir_transposed',
-              'verilator',
-              outdir='../../outputs/fir/rtl',
-              timeout=1000)
-
-sim()
+    sim()
+    log.info("\033[92m //==== PASS ====// \033[90m")
+except:
+    # printing stack trace
+    traceback.print_exc()
+    log.info("\033[91m //==== FAILED ====// \033[90m")

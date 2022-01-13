@@ -1,8 +1,8 @@
 from pygears_dsp.lib.matrix_ops.mult_by_column import column_multiplication
 
 from pygears import gear
-from pygears.lib import flatten, ccat, dreg, decouple, dispatch, qdeal, group
-from pygears.typing import Array, Tuple, Uint
+from pygears.lib import flatten, ccat, dreg, decouple, dispatch, qdeal, group, sieve
+from pygears.typing import Array, Tuple, Uint, Tuple
 
 TCfg = Tuple[{
     'cols_per_row': Uint[8],
@@ -12,9 +12,8 @@ TCfg = Tuple[{
 }]
 
 
-@gear
-async def row_dispatch(din, *,
-                       cols_per_row) -> Tuple['din', Uint['cols_per_row']]:
+@gear(hdl={'compile': True})
+async def row_dispatch(din, *, cols_per_row) -> Tuple['din', Uint['cols_per_row']]:
     async for data, eot in din:
         yield (data, eot), Uint[cols_per_row].max
 
@@ -33,6 +32,11 @@ def matrix_multiplication(cfg, mat1, mat2, *, cols_per_row):
         | decouple(latency=2) \
         | dispatch
     tmp = []
+    if not isinstance(col_chunks, tuple):
+        col_chunks = (col_chunks, )
+    if not isinstance(row_chunks, tuple):
+        row_chunks = (row_chunks, )
+
     for col, row in zip(col_chunks, row_chunks):
         # col is flattened because, after qdeal, every col has type Queue lvl1 with eot == True
         # after flattening, we group it by cols_per_multiplier (set eot (last) after last column that goes
