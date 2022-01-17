@@ -92,7 +92,7 @@ if dut_select == 0:
     | check(ref=exp_res, cmp=lambda x, y: abs(x - y) < tolerated_output_difference)
 
     if sv_gen:
-        cosim('FFT_list', 'verilator', outdir='build/fft_bf/rtl', timeout=10)
+        cosim('FFT_list', 'verilator', outdir='build/fft_bf/rtl', timeout=100)
 else:
     FFT_recursive(a_input_i=test_input,
                   N=D,
@@ -101,10 +101,7 @@ else:
     | serialize | flatten | serialize | flatten \
     | check(ref=exp_res, cmp=lambda x, y: abs(x - y) < tolerated_output_difference)
     if sv_gen:
-        cosim('FFT_recursive',
-              'verilator',
-              outdir='build/fft_bf/rtl',
-              timeout=10)
+        cosim('FFT_recursive', 'verilator', outdir='build/fft_bf/rtl')
 
 # start test
 

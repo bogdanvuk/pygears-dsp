@@ -12,8 +12,8 @@ from pygears.sim import log, sim
 from pygears.sim.sim import cosim
 from pygears.typing import Fixp, Float
 from pygears_dsp.lib.fir import fir_direct, fir_transposed
-from tests.conftest import (fixp_sat, random_choice_seq, random_seq, set_seed,
-                            sine_seq)
+from conftest import (fixp_sat, random_choice_seq, random_seq, set_seed,
+                      sine_seq)
 
 
 def fir_compare(x, y):

@@ -1,3 +1,4 @@
+import random
 import traceback
 
 import numpy as np
@@ -11,7 +12,7 @@ from pygears.typing import Array, Int, Queue
 from pygears_dsp.lib.matrix_ops.matrix_multiplication import (
     TCfg, matrix_multiplication)
 from pygears_dsp.lib.matrix_ops.mult_by_column import column_multiplication
-from tests.conftest import set_seed
+from conftest import set_seed
 
 ########################## DESIGN CONTROLS ##########################
 num_cols = 8
@@ -20,18 +21,26 @@ cols_per_row = 2  # HINT suported values that are divisible with num_colls
 ########################### TEST CONTROLS ###########################
 sv_gen = 0
 ###########################################################################
+# set either random or custom seed
+seed = random.randrange(0, 2**32, 1)
+# seed = 1379896999
+
+# """Unify all seeds"""
+log.info(f"Random SEED: {seed}")
+set_seed(seed)
 
 ## input randomization
-# mat1 = np.random.randint(128, size=(num_rows, num_cols))
-# mat2 = np.random.randint(128, size=(num_rows, num_cols))
-# mat1 = np.ones((num_rows, num_cols))
-# mat2 = np.ones((num_rows,num_cols))
+mat1 = np.random.randint(128, size=(num_rows, num_cols))
+mat2 = np.random.randint(128, size=(num_rows, num_cols))
+mat1 = np.ones((num_rows, num_cols))
+mat2 = np.ones((num_rows, num_cols))
 
-mat1 = np.empty((num_rows, num_cols))
-mat2 = np.empty((num_rows, num_cols))
-# fill the matrix with the same value
-mat1.fill(32767)
-mat2.fill(-32768)
+# input the constatn value optionally
+# mat1 = np.empty((num_rows, num_cols))
+# mat2 = np.empty((num_rows, num_cols))
+# # fill the matrix with the same value
+# mat1.fill(32767)
+# mat2.fill(-32768)
 
 print("Inputs: ")
 print(type(mat1))
@@ -41,8 +50,9 @@ print(mat2)
 
 reg['trace/level'] = 0
 reg['gear/memoize'] = False
+
 reg['debug/trace'] = ['*']
-# reg['debug/webviewer'] = True
+reg['debug/webviewer'] = True
 res_list = []
 
 cfg = {

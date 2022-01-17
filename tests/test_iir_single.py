@@ -1,3 +1,4 @@
+import random
 import traceback
 from scipy import signal
 from pygears_dsp.lib.iir import iir_df1dsos, iir_df2tsos
@@ -7,13 +8,22 @@ from pygears.typing import Fixp, Float
 from pygears.sim import sim, cosim, log
 from pygears import reg
 
+from conftest import set_seed, fixp_sat
+
 ############################## SELECT TEST ###############################
 test_sel = 0  # 0=iir_df1dsos; 1=iir_df2tsos
 enable_svgen = 1  # enables systemVerilog generation
 ##########################################################################
-
 reg['debug/trace'] = ['*']
 reg['debug/webviewer'] = True
+
+# set either random or custom seed
+seed = random.randrange(0, 2**32, 1)
+# seed = 1379896999
+
+# """Unify all seeds"""
+log.info(f'"Random SEED: {seed}')
+set_seed(seed)
 
 # set constants
 t = list(range(100000))[0:100]
@@ -46,6 +56,12 @@ a = [[coef_type(coef) for coef in section] for section in a]
 # generate expected outputs
 gain = [Fixp[2, 23](1)] * len(b)
 ref = signal.sosfilt(sos, seq)
+
+# saturate the results value to filter output type if needed
+for i, r in enumerate(ref):
+    ref[i] = fixp_sat(Fixp[5, 24], float(r))
+
+# convert ref data to floats
 fp_ref = [float(r) for r in ref]
 try:
     if test_sel == 0:

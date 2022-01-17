@@ -13,7 +13,7 @@ from pygears.sim import log, sim
 from pygears.sim.sim import cosim
 from pygears.typing import Fixp, Float
 from pygears_dsp.lib.iir import iir_df1dsos, iir_df2tsos
-from tests.conftest import constant_seq, fixp_sat, random_choice_seq, random_seq, set_seed, sine_seq
+from conftest import constant_seq, fixp_sat, random_choice_seq, random_seq, set_seed, sine_seq
 
 
 def iir_compare(x, y):

@@ -12,8 +12,9 @@ TCfg = Tuple[{
 }]
 
 
-@gear(hdl={'compile': True})
-async def row_dispatch(din, *, cols_per_row) -> Tuple['din', Uint['cols_per_row']]:
+@gear
+async def row_dispatch(din, *,
+                       cols_per_row) -> Tuple['din', Uint['cols_per_row']]:
     async for data, eot in din:
         yield (data, eot), Uint[cols_per_row].max
 

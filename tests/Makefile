@@ -28,18 +28,18 @@ iir:			## run IIR filter tests once
 cordic: 		## run cordic filter tests once
 	pytest $(opts) test_cordic_regression.py $(save_to)
 
-matrix: 	    ## run matrix_ops tests ondce
+matrix: 		## run matrix_ops tests ondce
 	pytest $(opts) test_matrix_ops_regression.py $(save_to)
 
 all: fir iir cordic matrix
 
-sanity:
-	python test_cordic_regression.py == 1
-	python test_fir_regression.py
-	python test_iir_regression.py
-	python test_matrix_ops_regression.py
-	python test_fft_bf_single.py
-	python test_fir_single.py
-	python test_iir_single.py
-	python test_matrix_ops_single.py
+sanity:			## run all available files once for sanity
+	python3 test_cordic_regression.py 
+	python3 test_fir_regression.py
+	python3 test_iir_regression.py
+	python3 test_matrix_ops_regression.py
+	python3 test_fft_bf_single.py
+	python3 test_fir_single.py
+	python3 test_iir_single.py
+	python3 test_matrix_ops_single.py
 

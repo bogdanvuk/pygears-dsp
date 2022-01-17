@@ -11,7 +11,7 @@ from pygears.typing import Array, Int, Queue
 from pygears_dsp.lib.matrix_ops.matrix_multiplication import (
     TCfg, matrix_multiplication)
 from pygears_dsp.lib.matrix_ops.mult_by_column import column_multiplication
-from tests.conftest import set_seed
+from conftest import set_seed
 
 
 def create_valid_cfg(cols_per_row, mat1):
