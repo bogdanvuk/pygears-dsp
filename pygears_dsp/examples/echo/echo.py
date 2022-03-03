@@ -1,5 +1,5 @@
 from pygears import gear, Intf, alternative
-from pygears.lib import decouple, fmap, union_collapse
+from pygears.lib import decouple, tuplemap, union_collapse, trunc
 from pygears.typing import Fixp, ceil_pow2, Tuple
 from pygears.lib import flatten, priority_mux, replicate, once
 
@@ -51,9 +51,9 @@ def echo(din: Fixp, *, feedback_gain, sample_rate, delay):
         | decouple(depth=fifo_depth) \
         | prefill(dtype=din.dtype, num=sample_dly_len)
 
-    feedback_attenuated = (feedback * feedback_gain_fixp) | din.dtype
+    feedback_attenuated = trunc(feedback * feedback_gain_fixp, t=din.dtype)
 
-    dout |= (din + feedback_attenuated) | dout.dtype
+    dout |= trunc(din + feedback_attenuated, t=dout.dtype)
 
     return dout
 
@@ -72,4 +72,4 @@ def stereo_echo(
                      sample_rate=sample_rate,
                      delay=delay)
 
-    return din | fmap(f=(mono_echo, mono_echo))
+    return din | tuplemap(f=(mono_echo, mono_echo))

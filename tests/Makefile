@@ -17,14 +17,29 @@ fir:			## run IIR filter tests once
 	pytest $(opts) test_fir_regression.py $(save_to)
 
 fir_regr:		## run IIR filter test in a regression
-	pytest $(opts) test_fir_regression.py::test_fir_random --num=50 --random=1 $(save_to}
-	pytest $(opts) test_fir_regression.py::test_fir_random_type --num=50 --random=1 $(save_to)
-	pytest $(opts) test_fir_regression.py::test_fir_limits --num=3 --random=1 $(save_to)
-	pytest $(opts) test_fir_regression.py::test_fir_sine --num=3 --random=1 $(save_to)
-
+	pytest test_fir_regression.py::test_fir_random --num=1 #--random=1 $(save_to)
+	pytest test_fir_regression.py::test_fir_random_type --num=50 --random=1 $(save_to)
+	pytest test_fir_regression.py::test_fir_limits --num=3 --random=1 $(save_to)
+	pytest test_fir_regression.py::test_fir_sine --num=3 --random=1 $(save_to)
 
 iir:			## run IIR filter tests once
 	pytest $(opts) test_iir_regression.py $(save_to)
 
 cordic: 		## run cordic filter tests once
 	pytest $(opts) test_cordic_regression.py $(save_to)
+
+matrix: 		## run matrix_ops tests ondce
+	pytest $(opts) test_matrix_ops_regression.py $(save_to)
+
+all: fir iir cordic matrix
+
+sanity:			## run all available files once for sanity
+	python3 test_cordic_regression.py 
+	python3 test_fir_regression.py
+	python3 test_iir_regression.py
+	python3 test_matrix_ops_regression.py
+	python3 test_fft_bf_single.py
+	python3 test_fir_single.py
+	python3 test_iir_single.py
+	python3 test_matrix_ops_single.py
+
