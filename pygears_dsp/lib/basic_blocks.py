@@ -118,7 +118,8 @@ def mult_dsp(a, b, *, t=None, quantization=Quantization.TRUNCATE, overflow=Overf
 
 
 @gear
-def add_sub_dsp(a, b, *, t=None, quantization=Quantization.TRUNCATE, overflow=Overflow.WRAP_AROUND, latency=0, operation=Operation.ADD):
+def add_sub_dsp(a, b, *, t=None, quantization=Quantization.TRUNCATE, overflow=Overflow.WRAP_AROUND, latency=0,
+                operation=Operation.ADD):
     """
     Computes the sum/difference of the data on its inputs. Inputs can be of Integer or Fixed point type.
     In case of subtraction, first input is the minuend, while second input is the subtrahend.
@@ -182,7 +183,7 @@ def add_sub_dsp(a, b, *, t=None, quantization=Quantization.TRUNCATE, overflow=Ov
 
         if latency_iter:
             pipe_len = ceil_div(latency_iter, 2)
-            quant_sum_diff = quant_prodquant_sum_diff | pipeline(length=pipe_len)
+            quant_sum_diff = quant_sum_diff | pipeline(length=pipe_len)
             latency_iter -= pipe_len
 
         if overflow == Overflow.WRAP_AROUND:
