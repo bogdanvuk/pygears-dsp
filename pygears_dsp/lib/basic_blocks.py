@@ -1,7 +1,9 @@
 from pygears import gear
-from pygears.typing import Ufixp
+from pygears.typing import Ufixp, Integer, Fixpnumber
+from pygears.typing.math import ceil_div
+from pygears.typing.base import typeof
 from enum import IntEnum
-from pygears.lib import trunc, saturate, qround, pipeline, ccat, field_sel
+from pygears.lib import trunc, saturate, qround, pipeline, ccat, field_sel, cast
 
 
 class Overflow(IntEnum):
@@ -26,15 +28,17 @@ def mult_dsp(a, b, *, t=None, quantization=Quantization.TRUNCATE, overflow=Overf
 
     Parameters
     ----------
-    t - Desired output data type. If omitted, output type will be infered from input types.
+    t : Integer, Fixpnumber
+        Desired output data type. If omitted, output type will be infered from input types.
 
-    quantization - Desired method for reducing the fractional portion of the product.
-                   Quantization.TRUNCATE | Quantization.ROUND
+    quantization : Quantization.TRUNCATE | Quantization.ROUND
+        Desired method for reducing the fractional portion of the product.
 
-    overflow - Desired method for dealing with overflow.
-               Overflow.WRAP_AROUND | Overflow.SATURATE
+    overflow : Overflow.WRAP_AROUND | Overflow.SATURATE
+        Desired method for dealing with overflow.
 
-    latency - Number of clock cycles by which the output is delayed.
+    latency : int
+        Number of clock cycles by which the output is delayed.
 
     Example
     -------
@@ -45,17 +49,46 @@ def mult_dsp(a, b, *, t=None, quantization=Quantization.TRUNCATE, overflow=Overf
              latency=4)
     """
     prod = a * b
+    latency_iter = latency
 
     if t is None:
         res = prod
-    elif type(t).__base__.__name__ == 'IntegerType':
+    elif typeof(t, Integer):
+
+        if latency_iter:
+            pipe_len = ceil_div(latency_iter, 3)
+            prod = prod | pipeline(length=pipe_len)
+            latency_iter -= pipe_len
+
+        if typeof(prod.dtype, Integer):
+            quant_prod = prod
+        elif typeof(prod.dtype, Fixpnumber):
+            if quantization == Quantization.TRUNCATE:
+                quant_prod = cast(prod, t=t)
+            elif quantization == Quantization.ROUND:
+                quant_prod = qround(prod)
+            else:
+                raise Exception(f"Parameter quantization has to be chosen from Quantization.TRUNCATE|ROUND")
+        else:
+            raise Exception('t has to be either Integer or Fixpnumber')
+
+        if latency_iter:
+            pipe_len = ceil_div(latency_iter, 2)
+            quant_prod = quant_prod | pipeline(length=pipe_len)
+            latency_iter -= pipe_len
+
         if overflow == Overflow.WRAP_AROUND:
-            res = trunc(prod, t=t)
+            res = trunc(quant_prod, t=t)
         elif overflow == Overflow.SATURATE:
-            res = saturate(prod, t=t)
+            res = saturate(quant_prod, t=t)
         else:
             raise Exception(f"Parameter overflow has to be chosen from Overflow.WRAP_AROUND|SATURATE")
-    elif type(t).__base__.__name__ == 'FixpnumberType':
+    elif type(t, Fixpnumber):
+
+        if latency_iter:
+            pipe_len = ceil_div(latency_iter, 3)
+            prod = prod | pipeline(length=pipe_len)
+            latency_iter -= pipe_len
 
         if quantization == Quantization.TRUNCATE:
             quant_prod = trunc(prod, t=t.base[prod.dtype.integer, prod.dtype.integer + t.fract])
@@ -63,7 +96,12 @@ def mult_dsp(a, b, *, t=None, quantization=Quantization.TRUNCATE, overflow=Overf
             quant_prod = qround(prod, fract=t.fract)
         else:
             raise Exception(f"Parameter quantization has to be chosen from Quantization.TRUNCATE|ROUND")
-        
+
+        if latency_iter:
+            pipe_len = ceil_div(latency_iter, 2)
+            quant_prod = quant_prod | pipeline(length=pipe_len)
+            latency_iter -= pipe_len
+
         if overflow == Overflow.WRAP_AROUND:
             res = trunc(quant_prod, t=t)
         elif overflow == Overflow.SATURATE:
@@ -71,34 +109,37 @@ def mult_dsp(a, b, *, t=None, quantization=Quantization.TRUNCATE, overflow=Overf
         else:
             raise Exception(f"Parameter overflow has to be chosen from Overflow.WRAP_AROUND|SATURATE")
     else:
-        raise Exception('t has to be either IntegerType or FixpnumberType')
-    
-    if latency:
-        return res | pipeline(length=latency)
+        raise Exception('t has to be either Integer or Fixpnumber')
+
+    if latency_iter:
+        return res | pipeline(length=latency_iter)
     else:
         return res
 
 
 @gear
-def add_sub_dsp(a, b, *, t=None, quantization=Quantization.TRUNCATE, overflow=Overflow.WRAP_AROUND, latency=0, operation=Operation.ADD):
+def add_sub_dsp(a, b, *, t=None, quantization=Quantization.TRUNCATE, overflow=Overflow.WRAP_AROUND, latency=0,
+                operation=Operation.ADD):
     """
     Computes the sum/difference of the data on its inputs. Inputs can be of Integer or Fixed point type.
     In case of subtraction, first input is the minuend, while second input is the subtrahend.
 
     Parameters
     ----------
-    t - Desired output data type. If omitted, output type will be infered from input types.
+    t : Integer, Fixpnumber
+        Desired output data type. If omitted, output type will be infered from input types.
 
-    operation - Specifies the operation to be either addition or subtraction.
-                Operation.ADD | Operation.SUB
+    operation : Operation.ADD | Operation.SUB
+        Specifies the operation to be either addition or subtraction.
 
-    quantization - Desired method for reducing the fractional portion of the product.
-                   Quantization.TRUNCATE | Quantization.ROUND
+    quantization : Quantization.TRUNCATE | Quantization.ROUND
+        Desired method for reducing the fractional portion of the product.
 
-    overflow - Desired method for dealing with overflow.
-               Overflow.WRAP_AROUND | Overflow.SATURATE
+    overflow : Overflow.WRAP_AROUND | Overflow.SATURATE
+        Desired method for dealing with overflow.
 
-    latency - Number of clock cycles by which the output is delayed.
+    latency : int
+        Number of clock cycles by which the output is delayed.
 
     Example
     -------
@@ -111,41 +152,76 @@ def add_sub_dsp(a, b, *, t=None, quantization=Quantization.TRUNCATE, overflow=Ov
     """
 
     if operation == Operation.ADD:
-        prod = a + b
+        sum_diff = a + b
     elif operation == Operation.SUB:
-        prod = a - b
+        sum_diff = a - b
     else:
         raise Exception(f"Parameter operation has to be chosen from Operation.ADD|SUB")
 
+    latency_iter = latency
+
     if t is None:
-        res = prod
-    elif type(t).__base__.__name__ == 'IntegerType':
+        res = sum_diff
+    elif typeof(t, Integer):
+
+        if latency_iter:
+            pipe_len = ceil_div(latency_iter, 3)
+            sum_diff = sum_diff | pipeline(length=pipe_len)
+            latency_iter -= pipe_len
+
+        if typeof(sum_diff.dtype, Integer):
+            quant_sum_diff = sum_diff
+        elif typeof(sum_diff.dtype, Fixpnumber):
+            if quantization == Quantization.TRUNCATE:
+                quant_sum_diff = cast(sum_diff, t=t)
+            elif quantization == Quantization.ROUND:
+                quant_sum_diff = qround(sum_diff)
+            else:
+                raise Exception(f"Parameter quantization has to be chosen from Quantization.TRUNCATE|ROUND")
+        else:
+            raise Exception('t has to be either Integer or Fixpnumber')
+
+        if latency_iter:
+            pipe_len = ceil_div(latency_iter, 2)
+            quant_sum_diff = quant_sum_diff | pipeline(length=pipe_len)
+            latency_iter -= pipe_len
+
         if overflow == Overflow.WRAP_AROUND:
-            res = trunc(prod, t=t)
+            res = trunc(quant_sum_diff, t=t)
         elif overflow == Overflow.SATURATE:
-            res = saturate(prod, t=t)
+            res = saturate(quant_sum_diff, t=t)
         else:
             raise Exception(f"Parameter overflow has to be chosen from Overflow.WRAP_AROUND|SATURATE")
-    elif type(t).__base__.__name__ == 'FixpnumberType':
+    elif type(t, Fixpnumber):
+
+        if latency_iter:
+            pipe_len = ceil_div(latency_iter, 3)
+            sum_diff = sum_diff | pipeline(length=pipe_len)
+            latency_iter -= pipe_len
 
         if quantization == Quantization.TRUNCATE:
-            quant_prod = trunc(prod, t=t.base[prod.dtype.integer, prod.dtype.integer + t.fract])
+            quant_sum_diff = trunc(sum_diff, t=t.base[sum_diff.dtype.integer, sum_diff.dtype.integer + t.fract])
         elif quantization == Quantization.ROUND:
-            quant_prod = qround(prod, fract=t.fract)
+            quant_sum_diff = qround(sum_diff, fract=t.fract)
         else:
             raise Exception(f"Parameter quantization has to be chosen from Quantization.TRUNCATE|ROUND")
 
+        if latency_iter:
+            pipe_len = ceil_div(latency_iter, 2)
+            quant_sum_diff = quant_sum_diff | pipeline(length=pipe_len)
+            latency_iter -= pipe_len
+
         if overflow == Overflow.WRAP_AROUND:
-            res = trunc(quant_prod, t=t)
+            res = trunc(quant_sum_diff, t=t)
         elif overflow == Overflow.SATURATE:
-            res = saturate(quant_prod, t=t)
+            res = saturate(quant_sum_diff, t=t)
         else:
             raise Exception(f"Parameter overflow has to be chosen from Overflow.WRAP_AROUND|SATURATE")
     else:
-        raise Exception('t has to be either IntegerType or FixpnumberType')
+        raise Exception('t has to be either Integer or Fixpnumber')
 
-    if latency:
-        return res | pipeline(length=latency, feedback=True)
+    if latency_iter:
+        return res | pipeline(length=latency_iter)
     else:
         return res
     
