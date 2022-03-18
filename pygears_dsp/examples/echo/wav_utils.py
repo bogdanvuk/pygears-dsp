@@ -5,7 +5,7 @@ import array
 
 def list_samples(sample_bytes, params):
     return [
-        audioop.getsample(sample_bytes, params.sampwidth, i)
+        audioop.getsample(sample_bytes, params.nchannels, i)
         for i in range(params.nframes)
     ]
 

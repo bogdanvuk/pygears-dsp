@@ -14,7 +14,7 @@ from conftest import fixp_sat, set_seed
 
 ############################## SELECT TEST ###############################
 test_sel = 1  # 0=fir_direct; 1=fir_transposed
-enable_svgen = 0  # enables systemVerilog generation
+enable_svgen = 1  # enables systemVerilog generation
 ##########################################################################
 # >> used to probe all signals
 reg['debug/trace'] = ['*']
@@ -70,7 +70,7 @@ try:
                   outdir='../../outputs/fir/rtl',
                   timeout=1000)
 
-    sim()
+    sim('../../outputs/fir/')
     log.info("\033[92m //==== PASS ====// \033[90m")
 except:
     # printing stack trace
