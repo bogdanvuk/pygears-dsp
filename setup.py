@@ -28,8 +28,8 @@ setup(
         'Programming Language :: Python :: 3.7',
     ],
     python_requires='>=3.6.0',
-    install_requires=['scipy', 'matplotlib', 'pytest', 'pygears'],
-    setup_requires=['scipy', 'matplotlib', 'pytest', 'pygears'],
+    install_requires=['scipy==1.7.3', 'matplotlib', 'pytest', 'pygears', 'pytest-xdist'],
+    setup_requires=['numpy==1.21.3'],
     package_data={'': ['*.j2', '*.sv']},
     include_package_data=True,
     keywords=
